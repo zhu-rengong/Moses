@@ -5040,7 +5040,7 @@ end
 ---has a metatable implementing an `__index` field pointing to another table, will also recurse on this
 ---table if `recurseMt` is provided. If `obj` is omitted, it defaults to the library functions.
 ---<br/><em>Aliased as `methods`</em>.
----@param obj {} # an object. Defaults to Moses library functions.
+---@param obj? {} # an object. Defaults to Moses library functions.
 ---@param recurseMt? boolean
 ---@return any[] # an array-list of methods names
 ---<hr/>
@@ -5655,12 +5655,16 @@ end
 -- Setting chaining and building interface
 
 do
+    ---@class Moses_Wrapper : Moses_Interal
+    ---@field _value any
+    ---@field _wrapped boolean
 
     -- Wrapper to Moses
     local f = {}
 
     -- Will be returned upon requiring, indexes into the wrapper
     ---@class Moses_External : Moses_Interal
+    ---@overload fun(v:any):Moses_Wrapper
     local Moses = {}
     Moses.__index = f
 
@@ -5674,20 +5678,17 @@ do
         __index = function(t, key, ...) return f[key] end -- Redirects to the wrapper
     })
 
-    --- Returns a wrapped object. Calling library functions as methods on this object
-    -- will continue to return wrapped objects until @{obj:value} is used. Can be aliased as `M(value)`.
-    -- @class function
-    -- @name chain
-    -- @param value a value to be wrapped
-    -- @return a wrapped object
+    ---Returns a wrapped object. Calling library functions as methods on this object
+    ---will continue to return wrapped objects until `obj:value` is used. Can be aliased as `M(value)`.
+    ---@param value any # a value to be wrapped
+    ---@return Moses_Wrapper # a wrapped object
     function Moses.chain(value)
         return new(value)
     end
 
-    --- Extracts the value of a wrapped object. Must be called on an chained object (see @{chain}).
-    -- @class function
-    -- @name obj:value
-    -- @return the value previously wrapped
+    ---Extracts the value of a wrapped object. Must be called on an chained object (see `chain`).
+    ---@param self Moses_Wrapper
+    ---@return unknown # the value previously wrapped
     function Moses:value()
         return self._value
     end
