@@ -22,7 +22,7 @@ local unpack                     = table.unpack or unpack
 local pairs, ipairs              = pairs, ipairs
 local error                      = error
 local clock                      = os and os.clock or nil
----@class Moses_Interal
+---@class moses
 local M                          = {}
 
 
@@ -38,16 +38,16 @@ local function count(t) -- raw count of items in an map-table
     return i
 end
 
----@generic TKey, TValue, TVararg, TTrans
----@param list { [TKey]:TValue }
----@param comp fun(_ans:TValue|TTrans, val:TValue|TTrans):boolean
----@param transform? fun(v:TValue, ...:TVararg):(TValue|TTrans)
----@param ... TVararg
----@return TValue|TTrans
+---@generic k, v, v2, vararg
+---@param list { [k]:v }
+---@param comp fun(_ans:v2, val:v2):boolean
+---@param transform? fun(v:v, ...:vararg):v2
+---@param ... vararg
+---@return v2
 local function extract(list, comp, transform, ...) -- extracts value from a list
     transform = transform or M.identity
     local _ans
-    for k, v in pairs(list) do
+    for _, v in pairs(list) do
         if not _ans then
             _ans = transform(v, ...)
         else
@@ -254,9 +254,9 @@ M.operator.len = M.operator.length
 -- @section Table functions
 
 ---Clears a table. All its values become nil.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@return { [TKey]:TValue } # the given table, cleared.
+---@generic k, v
+---@param t { [k]:v } # a table
+---@return { [k]:v } # the given table, cleared.
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -273,9 +273,9 @@ end
 
 ---Iterates on key-value pairs, calling `f (v, k)` at every step.
 ---<br/><em>Aliased as `forEach`</em>.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param f fun(value:TValue, key:TKey) function, prototyped as `f (v, k)`
+---@generic k, v
+---@param t { [k]:v } # a table
+---@param f fun(value:v, key:k) function, prototyped as `f (v, k)`
 ---@see eachi
 ---<hr/>
 ---
@@ -313,9 +313,9 @@ end
 ---Only applies to values located at integer keys. The table can be a sparse array.
 ---Iteration will start from the lowest integer key found to the highest one.
 ---<br/><em>Aliased as `forEachi`</em>.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param f fun(value:TValue, key:TKey) # a function, prototyped as `f (v, k)`
+---@generic k, v
+---@param t { [k]:v } # a table
+---@param f fun(value:v, key:k) # a function, prototyped as `f (v, k)`
 ---@see each
 ---<hr/>
 ---
@@ -353,10 +353,10 @@ function M.eachi(t, f)
 end
 
 ---Collects values at given keys and return them wrapped in an array.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param ... TKey # variable number of keys to collect values
----@return TValue[] # an array-list of values
+---@generic k, v
+---@param t { [k]:v } # a table
+---@param ... k # variable number of keys to collect values
+---@return v[] # an array-list of values
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -372,17 +372,18 @@ M.at(t,'a', 'ccc') -- => "{4, false}"
 ]]
 function M.at(t, ...)
     local values = {}
-    for i, key in ipairs({ ... }) do values[#values + 1] = t[key] end
+    for _, key in ipairs({ ... }) do values[#values + 1] = t[key] end
     return values
 end
 
 ---Adjusts the value at a given key using a function or a value. In case `f` is a function,
 ---<br/>it should be prototyped `f(v)`. It does not mutate the given table, but rather
 ---<br/>returns a new array. In case the given `key` does not exist in `t`, it throws an error.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param key TKey key
----@param f? fun(value:TValue):unknown # function, prototyped as `f(v)` or a value
+---@generic k, v, v2
+---@param t { [k]:v } # a table
+---@param key k key
+---@param f? (fun(value:v):v2)|v2 # function, prototyped as `f(v)` or a value
+---@return { [k]:v|v2 }
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -441,9 +442,9 @@ end
 
 ---Counts the number of values passing a predicate test. Same as `count`, but uses an iterator.
 ---Returns the count for values passing the test `f (v, k)`
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param f fun(value:TValue, key:TKey):boolean # an iterator function, prototyped as `f (v, k)`
+---@generic k, v
+---@param t { [k]:v } # a table
+---@param f fun(value:v, key:k):boolean # an iterator function, prototyped as `f (v, k)`
 ---@return integer # the count of values validating the predicate
 ---@see count
 ---@see size
@@ -473,9 +474,9 @@ end
 ---Checks if all values in a collection are equal. Uses an optional `comp` function which is used
 ---to compare values and defaults to `isEqual` when not given.
 ---<br/><em>Aliased as `alleq`</em>.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param comp? fun(pivot:TValue, value:TValue):boolean # comp a comparison function. Defaults to `isEqual`
+---@generic k, v
+---@param t { [k]:v } # a table
+---@param comp? fun(pivot:v, value:v):boolean # a comparison function. Defaults to `isEqual`
 ---@return boolean # `true` when all values in `t` are equal, `false` otherwise.
 ---@see isEqual
 ---<hr/>
@@ -514,8 +515,8 @@ M.allEqual({t1, t2, t3, t4}, compy) -- => false
 ```
 ]]
 function M.allEqual(t, comp)
-    local k, pivot = next(t)
-    for k, v in pairs(t) do
+    local _, pivot = next(t)
+    for _, v in pairs(t) do
         if comp then
             if not comp(pivot, v) then return false end
         else
@@ -528,10 +529,10 @@ end
 ---Loops `n` times through a table. In case `n` is omitted, it will loop forever.
 ---In case `n` is lower or equal to 0, it returns an empty function.
 ---<br/><em>Aliased as `loop`</em>.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
+---@generic k, v
+---@param t { [k]:v } # a table
 ---@param n integer # n the number of loops
----@return fun():(TValue,TKey) # an iterator function yielding value-key pairs from the passed-in table.
+---@return fun():(v,k) # an iterator function yielding value-key pairs from the passed-in table.
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -591,10 +592,10 @@ end
 ---Maps `f (v, k)` on value-key pairs, collects and returns the results.
 ---Uses `pairs` to iterate over elements in `t`.
 ---<br/><em>Aliased as `collect`</em>.
----@generic TKey, TValue, TRetValue
----@param t { [TKey]:TValue } # a table
----@param f fun(value:TValue, key:TKey):TRetValue # an iterator function, prototyped as `f (v, k)`
----@return { [TKey]:TRetValue } # a table of results
+---@generic k, v, v2
+---@param t { [k]:v } # a table
+---@param f fun(value:v, key:k):v2? # an iterator function, prototyped as `f (v, k)`
+---@return { [k]:v2 } # a table of results
 ---@see mapi
 ---<hr/>
 ---
@@ -640,10 +641,10 @@ end
 
 ---Maps `f (v, k)` on value-key pairs, collects and returns the results.
 ---Uses `ipairs` to iterate over elements in `t`.
----@generic TValue, TRetValue
----@param t TValue[] # a table
----@param f fun(value:TValue, key:integer):TRetValue # an iterator function, prototyped as `f (v, k)`
----@return TRetValue[] # a table of results
+---@generic v, v2
+---@param t v[] # a table
+---@param f fun(value:v, index:integer):v2? # an iterator function, prototyped as `f (v, k)`
+---@return v2[] # a table of results
 ---@see map
 ---<hr/>
 ---
@@ -676,15 +677,69 @@ function M.mapi(t, f)
     return _t
 end
 
+---@generic orig_k, old_v, new_v
+---@param t { [orig_k]: old_v}
+---@param f fun(v:old_v, k:orig_k):new_v
+---@return {[orig_k]: new_v}
+function M.mapv(t, f)
+    local _t = {}
+    for index, value in pairs(t) do
+        _t[index] = f(value, index)
+    end
+    return _t
+end
+
+---@generic old_k, old_v, new_k, new_v
+---@param t { [old_k]: old_v}
+---@param f fun(v:old_v, k:old_k):(new_k, new_v)
+---@return {[new_k]: new_v}
+function M.mapkv(t, f)
+    local _t = {}
+    for index, value in pairs(t) do
+        local k, v = f(value, index)
+        if k then
+            _t[k] = v
+        end
+    end
+    return _t
+end
+
+---@generic old_v, new_v
+---@param t old_v[]
+---@param f fun(v:old_v, i:integer):new_v
+---@return new_v[]
+function M.mapiv(t, f)
+    local _t = {}
+    for index, value in pairs(t) do
+        _t[index] = f(value, index)
+    end
+    return _t
+end
+
+---@generic old_v, new_k, new_v
+---@param t old_v[]
+---@param f fun(v:old_v, i:integer):(new_k, new_v)
+---@return {[new_k]:new_v}
+function M.mapikv(t, f)
+    local _t = {}
+    for index, value in pairs(t) do
+        local k, v = f(value, index)
+        if k then
+            _t[k] = v
+        end
+    end
+    return _t
+end
+
 ---Reduces a table, left-to-right. Folds the table from the first element to the last element
 ---to a single value, using a given iterator and an initial state.
 ---The iterator takes a state and a value and returns a new state.
 ---<br/><em>Aliased as `inject`, `foldl`</em>.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param f fun(state:TValue, value:TValue):TValue # an iterator function, prototyped as `f (state, value)`
----@param state? TValue # an initial state of reduction. Defaults to the first value in the table.
----@return TValue # the final state of reduction
+---@generic k, v, v2, v3
+---@param t { [k]:v } # a table
+---@param f fun(state:v|v2|v3, value:v):v3 # an iterator function, prototyped as `f (state, value)`
+---@param state? v2 # an initial state of reduction. Defaults to the first value in the table.
+---@return v3 # the final state of reduction
 ---@see best
 ---@see reduceRight
 ---@see reduceBy
@@ -722,10 +777,10 @@ end
 ---Returns the best value passing a selector function. Acts as a special case of
 ---`reduce`, using the first value in `t` as an initial state. It thens folds the given table,
 ---testing each of its values `v` and selecting the value passing the call `f(state,v)` every time.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param f fun(state:TValue, value:TValue):boolean # an iterator function, prototyped as `f (state, value)`
----@return TValue # the final state of reduction
+---@generic k, v
+---@param t { [k]:v } # a table
+---@param f fun(state:v, value:v):boolean # an iterator function, prototyped as `f (state, value)`
+---@return v # the final state of reduction
 ---@see reduce
 ---@see reduceRight
 ---@see reduceBy
@@ -753,12 +808,12 @@ end
 
 ---Reduces values in a table passing a given predicate. Folds the table left-to-right, considering
 ---only values validating a given predicate.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param f fun(state:TValue, value:TValue):TValue # an iterator function, prototyped as `f (state, value)`
----@param pred fun(value:TValue, index:TKey):boolean # a predicate function `pred (v, k)` to select values to be considered for reduction
----@param state? TValue # state an initial state of reduction. Defaults to the first value in the table of selected values.
----@return TValue # the final state of reduction
+---@generic k, v, v2, v3
+---@param t { [k]:v } # a table
+---@param f fun(state:v|v2|v3, value:v):v3 # an iterator function, prototyped as `f (state, value)`
+---@param pred fun(value:v, key:k):boolean # a predicate function `pred (v, k)` to select values to be considered for reduction
+---@param state? v2 # state an initial state of reduction. Defaults to the first value in the table of selected values.
+---@return v3 # the final state of reduction
 ---@see reduce
 ---@see best
 ---@see reduceRight
@@ -810,11 +865,11 @@ end
 ---to single value, using a given iterator and an initial state.
 ---The iterator takes a state and a value, and returns a new state.
 ---<br/><em>Aliased as `injectr`, `foldr`</em>.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param f fun(state:TValue, value:TValue):TValue # an iterator function, prototyped as `f (state, value)`
----@param state? TValue # an initial state of reduction. Defaults to the last value in the table.
----@return TValue # the final state of reduction
+---@generic k, v, v2, v3
+---@param t { [k]:v } # a table
+---@param f fun(state:v|v2|v3, value:v):v3 # an iterator function, prototyped as `f (state, value)`
+---@param state? v2 # an initial state of reduction. Defaults to the last value in the table.
+---@return v3 # the final state of reduction
 ---@see reduce
 ---@see best
 ---@see reduceBy
@@ -837,11 +892,11 @@ end
 ---using a given iterator and an initial state. The iterator takes a state and a value,
 ---and returns a new state. The result is an array of intermediate states.
 ---<br/><em>Aliased as `mapr`</em>
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param f fun(state:TValue, value:TValue):TValue # an iterator function, prototyped as `f (state, value)`
----@param state TValue # an initial state of reduction. Defaults to the first value in the table.
----@return TValue[] # an array of states
+---@generic k, v, v2, v3
+---@param t { [k]:v } # a table
+---@param f fun(state:v|v2|v3, value:v):v3 # an iterator function, prototyped as `f (state, value)`
+---@param state? v2 # an initial state of reduction. Defaults to the first value in the table.
+---@return v3[] # an array of states
 ---@see mapReduceRight
 ---<hr/>
 ---
@@ -866,11 +921,11 @@ end
 ---using a given iterator and an initial state. The iterator takes a state and a value,
 ---and returns a new state. The result is an array of intermediate states.
 ---<br/><em>Aliased as `maprr`</em>
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param f fun(state:TValue, value:TValue):TValue # an iterator function, prototyped as `f (state, value)`
----@param state TValue # an initial state of reduction. Defaults to the last value in the table.
----@return TValue[] # an array of states
+---@generic k, v, v2, v3
+---@param t { [k]:v } # a table
+---@param f fun(state:v|v2|v3, value:v):v3 # an iterator function, prototyped as `f (state, value)`
+---@param state? v2 # an initial state of reduction. Defaults to the last value in the table.
+---@return v3[] # an array of states
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -890,9 +945,9 @@ end
 ---The given value can be a function prototyped as `f (v, value)` which should return true when
 ---any v in the table equals the value being searched.
 ---<br/><em>Aliased as `any`, `some`, `contains`</em>
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param value TValue # a value to search for
+---@generic k, v
+---@param t { [k]:v } # a table
+---@param value any|fun(v:v):boolean # a value to search for
 ---@return boolean # a boolean : `true` when found, `false` otherwise
 ---@see detect
 ---<hr/>
@@ -921,7 +976,7 @@ M.include({'a','B','c'},isUpper) -- => true
 ]]
 function M.include(t, value)
     local _iter = (type(value) == 'function') and value or M.isEqual
-    for k, v in pairs(t) do
+    for _, v in pairs(t) do
         if _iter(v, value) then return true end
     end
     return false
@@ -931,10 +986,10 @@ end
 ---The given value can be a function prototyped as `f (v, value)` which should return true when
 ---any v in the table equals the value being searched. This function is similar to `find`,
 ---which is mostly meant to work with array.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param value TValue|fun(arg:TValue):boolean # a value to search for
----@return TKey|nil # the key of the value when found or __nil__
+---@generic k, v
+---@param t { [k]:v } # a table
+---@param value any|fun(arg:v):boolean # a value to search for
+---@return k? # the key of the value when found or __nil__
 ---@see include
 ---@see find
 ---<hr/>
@@ -971,10 +1026,10 @@ function M.detect(t, value)
 end
 
 ---Returns all values having specified keys `props`.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param props TValue # a set of keys
----@return TValue[]|nil # an array of values from the passed-in table
+---@generic k, v
+---@param t { [k]:v } # a table
+---@param props table # a set of keys
+---@return v[]|nil # an array of values from the passed-in table
 ---@see findWhere
 ---<hr/>
 ---
@@ -1005,10 +1060,10 @@ function M.where(t, props)
 end
 
 ---Returns the first value having specified keys `props`.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param props TValue # a set of keys
----@return TValue|nil # a value from the passed-in table
+---@generic k, v
+---@param t { [k]:v } # a table
+---@param props table # a set of keys
+---@return v? # a value from the passed-in table
 ---@see where
 ---<hr/>
 ---
@@ -1034,10 +1089,10 @@ end
 
 ---Selects and returns values passing an iterator test.
 ---<br/><em>Aliased as `filter`</em>.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param f fun(value:TValue, index:TKey):boolean # an iterator function, prototyped as `f (v, k)`
----@return TValue[] # the selected values
+---@generic k, v
+---@param t { [k]:v } # a table
+---@param f fun(value:v, index:k):boolean # an iterator function, prototyped as `f (v, k)`
+---@return v[] # the selected values
 ---@see reject
 ---<hr/>
 ---
@@ -1062,10 +1117,10 @@ end
 
 ---Clones a table while dropping values passing an iterator test.
 ---<br/><em>Aliased as `discard`</em>
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param f fun(value:TValue, index:TKey) # an iterator function, prototyped as `f (v, k)`
----@return TValue[] # the remaining values
+---@generic k, v
+---@param t { [k]:v } # a table
+---@param f fun(value:v, index:k) # an iterator function, prototyped as `f (v, k)`
+---@return v[] # the remaining values
 ---@see select
 ---<hr/>
 ---
@@ -1090,9 +1145,9 @@ end
 
 ---Checks if all values in a table are passing an iterator test.
 ---<br/><em>Aliased as `every`</em>
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param f fun(value:TValue, index:TKey) # an iterator function, prototyped as `f (v, k)`
+---@generic k, v
+---@param t { [k]:v } # a table
+---@param f fun(value:v, index:k):boolean # an iterator function, prototyped as `f (v, k)`
 ---@return boolean # `true` if all values passes the predicate, `false` otherwise
 ---<hr/>
 ---
@@ -1112,10 +1167,10 @@ function M.all(t, f)
 end
 
 ---Invokes a method on each value in a table.
----@generic TKey, TValue, TRetValue
----@param t { [TKey]:TValue } # a table
----@param method fun(v:TValue, k:TKey):TRetValue # a function, prototyped as `f (v, k)`
----@return { [TKey]:TRetValue } # the result of the call `f (v, k)`
+---@generic k, v, v2
+---@param t { [k]:v } # a table
+---@param method fun(v:v, k:k):v2 # a function, prototyped as `f (v, k)`
+---@return { [k]:v2 } # the result of the call `f (v, k)`
 ---@see pluck
 ---<hr/>
 ---
@@ -1158,10 +1213,10 @@ function M.invoke(t, method)
 end
 
 ---Extracts values in a table having a given key.
----@generic TKey, TObjKey, TObjValue
----@param t { [TKey]:{ [TObjKey]:TObjValue } } # a table
----@param key TObjKey # a key, will be used to index in each value: `value[key]`
----@return TObjValue[] # an array of values having the given key
+---@generic k, v
+---@param t { [any]:{ [k]:v } } # a table
+---@param key any # a key, will be used to index in each value: `value[key]`
+---@return v[] # an array of values having the given key
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -1178,7 +1233,7 @@ M.pluck(peoples,'name') -- => "{'John', 'Peter', 'Steve'}"
 ]]
 function M.pluck(t, key)
     local _t = {}
-    for k, v in pairs(t) do
+    for _, v in pairs(t) do
         if v[key] then _t[#_t + 1] = v[key] end
     end
     return _t
@@ -1186,10 +1241,10 @@ end
 
 ---Returns the max value in a collection. If a `transform` function is passed, it will
 ---be used to evaluate values by which all objects will be sorted.
----@generic TKey, TValue, TVararg, TTrans
----@param t { [TKey]:TValue } # a table
----@param transform? fun(v:TValue, ...:TVararg):(TValue|TTrans) # a transformation function, prototyped as `transform (v, k)`, defaults to @{identity}
----@return TValue|TTrans # the max value found
+---@generic k, v, v2, vararg
+---@param t { [k]:v } # a table
+---@param transform? fun(v:v, ...:vararg):v2 # a transformation function, prototyped as `transform (v, k)`, defaults to @{identity}
+---@return v|v2 # the max value found
 ---@see min
 ---<hr/>
 ---
@@ -1219,10 +1274,10 @@ end
 
 ---Returns the min value in a collection. If a `transform` function is passed, it will
 ---be used to evaluate values by which all objects will be sorted.
----@generic TKey, TValue, TVararg, TTrans
----@param t { [TKey]:TValue } # a table
----@param transform? fun(v:TValue, ...:TVararg):(TValue|TTrans) # a transformation function, prototyped as `transform (v, k)`, defaults to @{identity}
----@return TValue|TTrans # the min value found
+---@generic k, v, v2, vararg
+---@param t { [k]:v } # a table
+---@param transform? fun(v:v, ...:vararg):v2 # a transformation function, prototyped as `transform (v, k)`, defaults to @{identity}
+---@return v|v2 # the min value found
 ---@see max
 ---<hr/>
 ---
@@ -1275,10 +1330,10 @@ function M.same(a, b)
 end
 
 ---Sorts a table, in-place. If a comparison function is given, it will be used to sort values.
----@generic T
----@param t T[] # a table
----@param comp? fun(a:T, b:T):boolean # a comparison function prototyped as `comp (a, b)`, defaults to <tt><</tt> operator.
----@return T[] # the given table, sorted.
+---@generic v
+---@param t v[] # a table
+---@param comp? fun(a:v, b:v):boolean # a comparison function prototyped as `comp (a, b)`, defaults to <tt><</tt> operator.
+---@return v[] # the given table, sorted.
 ---@see sortBy
 ---<hr/>
 ---
@@ -1307,10 +1362,10 @@ end
 
 ---Iterates on values with respect to key order. Keys are sorted using `comp` function
 ---which defaults to `math.min`. It returns upon each call a `key, value` pair.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param comp? fun(a:TKey, b:TKey) # a comparison function. Defaults to `<` operator
----@return fun():(TKey, TValue)  # an iterator function
+---@generic k, v
+---@param t { [k]:v } # a table
+---@param comp? fun(a:k, b:k) # a comparison function. Defaults to `<` operator
+---@return fun():(k,v)  # an iterator function
 ---@see sortedv
 ---<hr/>
 ---
@@ -1348,10 +1403,10 @@ end
 
 ---Iterates on values with respect to values order. Values are sorted using `comp` function
 ---which defaults to `math.min`. It returns upon each call a `key, value` pair.
----@generic TKey, TValue
----@param t { [TKey]:TValue } # a table
----@param comp? fun(a:TValue, b:TValue) # a comparison function. Defaults to `<` operator
----@return fun():(TKey, TValue) # an iterator function
+---@generic k, v
+---@param t { [k]:v } # a table
+---@param comp? fun(a:v, b:v) # a comparison function. Defaults to `<` operator
+---@return fun():(k,v) # an iterator function
 ---@see sortedk
 ---<hr/>
 ---
@@ -1391,11 +1446,11 @@ end
 ---Sorts a table in-place using a transform. Values are ranked in a custom order of the results of
 ---running `transform (v)` on all values. `transform` may also be a string name property  sort by.
 ---`comp` is a comparison function.
----@generic TKey, TValue, TTrans
----@param t { [TKey]:TValue } # a table
----@param transform? fun(t:TValue):(TValue|TTrans)  # a `transform` function to sort elements prototyped as `transform (v)`. Defaults to @{identity}
----@param comp? fun(a:TValue|TTrans, b:TValue|TTrans) # a comparison function, defaults to the `<` operator
----@return { [TKey]:(TValue|TTrans) } # a new array of sorted values
+---@generic k, v, v2
+---@param t { [k]:v } # a table
+---@param transform? (fun(t:v):v2)|string  # a `transform` function to sort elements prototyped as `transform (v)`. Defaults to @{identity}
+---@param comp? fun(a:v|v2, b:v|v2):boolean # a comparison function, defaults to the `<` operator
+---@return { [k]:v } # a new array of sorted values
 ---@see sort
 ---<hr/>
 ---
@@ -1468,10 +1523,10 @@ function M.sortBy(t, transform, comp)
 end
 
 ---Splits a table into subsets groups.
----@generic TKey, TValue, TGroupKey
----@param t { [TKey]:TValue } # a table
----@param iter fun(v:TValue, k:TKey):TGroupKey # an iterator function, prototyped as `iter (v, k)`
----@return { [TGroupKey]:TValue[] } # a table of subsets groups
+---@generic k, v, g
+---@param t { [k]:v } # a table
+---@param iter fun(v:v, k:k):g # an iterator function, prototyped as `iter (v, k)`
+---@return { [g]:v[] } # a table of subsets groups
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -1501,10 +1556,10 @@ function M.groupBy(t, iter)
 end
 
 ---Groups values in a collection and counts them.
----@generic TKey, TValue, TGroupKey
----@param t { [TKey]:TValue } # a table
----@param iter fun(v:TValue, k:TKey):TGroupKey # an iterator function, prototyped as `iter (v, k)`
----@return { [TGroupKey]:integer } # a table of subsets groups names paired with their count
+---@generic k, v, g
+---@param t { [k]:v } # a table
+---@param iter fun(v:v, k:k):g # an iterator function, prototyped as `iter (v, k)`
+---@return { [g]:integer } # a table of subsets groups names paired with their count
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -1614,11 +1669,11 @@ end
 ---Samples `n` random values from an array. If `n` is not specified, returns a single element.
 ---It uses internally `shuffle` to shuffle the array before sampling values. If `seed` is passed,
 ---it will be used for shuffling.
----@generic T
----@param array T[] # an array
----@param n integer # a number of elements to be sampled. Defaults to 1.
----@param seed integer # an optional seed for shuffling
----@return T[] # an array of selected values
+---@generic v
+---@param array v[] # an array
+---@param n? integer # a number of elements to be sampled. Defaults to 1.
+---@param seed? integer # an optional seed for shuffling
+---@return v[] # an array of selected values
 ---@see sampleProb
 ---<hr/>
 ---
@@ -1659,11 +1714,11 @@ end
 ---Return elements from a sequence with a given probability. It considers each value independently.
 ---Providing a seed will result in deterministic sampling. Given the same seed it will return the same sample
 ---every time.
----@generic T
----@param array T[] # an array
+---@generic v
+---@param array v[] # an array
 ---@param prob number # a probability for each element in array to be selected
----@param seed integer # an optional seed for deterministic sampling
----@return T[] # an array of selected values
+---@param seed? integer # an optional seed for deterministic sampling
+---@return v[] # an array of selected values
 ---@see sample
 ---<hr/>
 ---
@@ -1695,11 +1750,11 @@ end
 
 ---Returns the n-top values satisfying a predicate. It takes a comparison function
 ---`comp` used to sort array values, and then picks the top n-values. It leaves the original array untouched.
----@generic T
----@param array T[] # an array
----@param n integer # a number of values to retrieve. Defaults to 1.
----@param comp? fun(a:T, b:T) # comp a comparison function. Defaults to `<` operator.
----@return T[] # an array of top n values
+---@generic v
+---@param array v[] # an array
+---@param n? integer # a number of values to retrieve. Defaults to 1.
+---@param comp? fun(a:v, b:v) # comp a comparison function. Defaults to `<` operator.
+---@return v[] # an array of top n values
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -1723,10 +1778,12 @@ function M.nsorted(array, n, comp)
     comp = comp or f_min
     n = n or 1
     local values, count = {}, 0
-    for k, v in M.sortedv(array, comp) do
+    for _, v in M.sortedv(array, comp) do
         if count < n then
             count = count + 1
             values[count] = v
+        else
+            break
         end
     end
     return values
@@ -1734,10 +1791,10 @@ end
 
 ---Returns a shuffled copy of a given array. If a seed is provided, it will
 ---be used to init the built-in pseudo random number generator (using `math.randomseed`).
----@generic T
----@param array T[] # an array
----@param seed integer # a seed
----@return T[] # a shuffled copy of the given array
+---@generic v
+---@param array v[] # an array
+---@param seed? integer # a seed
+---@return v[] # a shuffled copy of the given array
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -1775,11 +1832,11 @@ function M.pack(...) return { ... } end
 
 ---Looks for the first occurrence of a given value in an array. Returns the value index if found.
 ---Uses `isEqual` to compare values.
----@generic T
----@param array T[] # an array of values
----@param value T # value to lookup for
+---@generic v
+---@param array v[] # an array of values
+---@param value v # value to lookup for
 ---@param from? integer # the index from where the search will start. Defaults to 1.
----@return T|nil # the index of the value if found in the array, `nil` otherwise.
+---@return integer? # the index of the value if found in the array, __nil__ otherwise.
 ---@see detect
 ---<hr/>
 ---
@@ -1808,9 +1865,9 @@ function M.find(array, value, from)
 end
 
 ---Returns an array where values are in reverse order. The passed-in array should not be sparse.
----@generic T
----@param array T[] # an array
----@return T[] # a reversed array
+---@generic v
+---@param array v[] # an array
+---@return v[] # a reversed array
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -1831,12 +1888,12 @@ end
 ---Replaces elements in a given array with a given value. In case `i` and `j` are given
 ---it will only replaces values at indexes between `[i,j]`. In case `j` is greater than the array
 ---size, it will append new values, increasing the array size.
----@generic T
----@param array T[] # an array
----@param value T # value
+---@generic v, v2
+---@param array v[] # an array
+---@param value v2 # value
 ---@param i? integer # the index from which to start replacing values. Defaults to 1.
 ---@param j? integer # the index where to stop replacing values. Defaults to the array size.
----@return T[] # the original array with values changed
+---@return (v|v2)[] # the original array with values changed
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -1899,7 +1956,7 @@ M.zeros(4) -- => {0,0,0,0}
 function M.zeros(n) return M.fill({}, 0, 1, n) end
 
 ---Returns an array of `n` 1's.
----@param n integer # a number
+---@param n? integer # a number
 ---@return integer[] # an array
 ---@see zeros
 ---@see vector
@@ -1914,10 +1971,10 @@ M.ones(3) -- => {1,1,1}
 function M.ones(n) return M.fill({}, 1, 1, n) end
 
 ---Returns an array of `n` times a given value.
----@generic T
----@param value T # a value
----@param n integer # a number
----@return T[] # an array
+---@generic v
+---@param value v # a value
+---@param n? integer # a number
+---@return v[] # an array
 ---@see zeros
 ---@see ones
 ---<hr/>
@@ -1933,10 +1990,10 @@ function M.vector(value, n) return M.fill({}, value, 1, n) end
 ---Collects values from a given array. The passed-in array should not be sparse.
 ---This function collects values as long as they satisfy a given predicate and returns on the first falsy test.
 ---<br/><em>Aliased as `takeWhile`</em>
----@generic T
----@param array T[] # an array
----@param f fun(v:T, i:integer):boolean # an iterator function prototyped as `f (v, k)`
----@return T[] # a new table containing all values collected
+---@generic v
+---@param array v[] # an array
+---@param f fun(v:v, i:integer):boolean # an iterator function prototyped as `f (v, k)`
+---@return v[] # a new table containing all values collected
 ---@see dropWhile
 ---<hr/>
 ---
@@ -1960,10 +2017,10 @@ end
 ---Collects values from a given array. The passed-in array should not be sparse.
 ---This function collects values as long as they do not satisfy a given predicate and returns on the first truthy test.
 ---<br/><em>Aliased as `rejectWhile`</em>
----@generic T
----@param array T[] # an array
----@param f fun(v:T, i:integer) # an iterator function prototyped as `f (v, k)`
----@return T[] # a new table containing all values collected
+---@generic v
+---@param array v[] # an array
+---@param f fun(v:v, i:integer):boolean # an iterator function prototyped as `f (v, k)`
+---@return v[] # a new table containing all values collected
 ---@see selectWhile
 ---<hr/>
 ---
@@ -1991,10 +2048,10 @@ end
 ---Returns the index at which a value should be inserted. This index is evaluated so
 ---that it maintains the sort. If a comparison function is passed, it will be used to sort
 ---values.
----@generic T
----@param array T[] # an array
----@param value T # the value to be inserted
----@param comp? fun(a:T, b:T):boolean # an comparison function prototyped as `f (a, b)`, defaults to <tt><</tt> operator.
+---@generic v
+---@param array v[] # an array
+---@param value v # the value to be inserted
+---@param comp? fun(a:v, b:v):boolean # an comparison function prototyped as `f (a, b)`, defaults to <tt><</tt> operator.
 ---@param sort? boolean # whether or not the passed-in array should be sorted
 ---@return integer # the index at which the passed-in value should be inserted
 ---<hr/>
@@ -2026,10 +2083,10 @@ function M.sortedIndex(array, value, comp, sort)
 end
 
 ---Returns the index of the first occurrence of value in an array.
----@generic T
----@param array T[] # an array
----@param value T # the value to search for
----@return integer|nil # the index of the passed-in value or __nil__
+---@generic v
+---@param array v[] # an array
+---@param value v # the value to search for
+---@return integer? # the index of the passed-in value or __nil__
 ---@see lastIndexOf
 ---<hr/>
 ---
@@ -2046,10 +2103,10 @@ function M.indexOf(array, value)
 end
 
 ---Returns the index of the last occurrence of value in an array.
----@generic T
----@param array T[] # an array
----@param value T # the value to search for
----@return integer|nil # the index of the last occurrence of the passed-in value or __nil__
+---@generic v
+---@param array v[] # an array
+---@param value v # the value to search for
+---@return integer? # the index of the last occurrence of the passed-in value or __nil__
 ---@see indexOf
 ---<hr/>
 ---
@@ -2065,10 +2122,10 @@ function M.lastIndexOf(array, value)
 end
 
 ---Returns the first index at which a predicate returns true.
----@generic T
----@param array T[] # an array
----@param pred fun(v:T, k:integer) # a predicate function prototyped as `pred (v, k)`
----@return integer|nil # the index found or __nil__
+---@generic v
+---@param array v[] # an array
+---@param pred fun(v:v, k:integer):boolean # a predicate function prototyped as `pred (v, k)`
+---@return integer? # the index found or __nil__
 ---@see findLastIndex
 ---<hr/>
 ---
@@ -2088,10 +2145,10 @@ function M.findIndex(array, pred)
 end
 
 --- Returns the last index at which a predicate returns true.
----@generic T
----@param array T[] # an array
----@param pred fun(v:T, k:integer) # a predicate function prototyped as `pred (v, k)`
----@return integer|nil # the index found or __nil__
+---@generic v
+---@param array v[] # an array
+---@param pred fun(v:v, k:integer):boolean # a predicate function prototyped as `pred (v, k)`
+---@return integer? # the index found or __nil__
 ---@see findIndex
 ---<hr/>
 ---
@@ -2111,10 +2168,10 @@ end
 
 ---Adds all passed-in values at the top of an array. The last elements will bubble to the
 ---top of the given array.
----@generic T
----@param array T[] # an array
----@param ... T # variable number of arguments
----@return T[] # the passed-in array with new values added
+---@generic v, v2
+---@param array v[] # an array
+---@param ... v2 # variable number of arguments
+---@return (v|v2)[] # the passed-in array with new values added
 ---@see prepend
 ---@see push
 ---<hr/>
@@ -2136,10 +2193,10 @@ end
 
 ---Adds all passed-in values at the top of an array. As opposed to `addTop`, it preserves the order
 ---of the passed-in elements.
----@generic T
----@param array T[] # an array
----@param ... T # a variable number of arguments
----@return T[] # the passed-in array with new values added
+---@generic v, v2
+---@param array v[] # an array
+---@param ... v2 # a variable number of arguments
+---@return (v|v2)[] # the passed-in array with new values added
 ---@see addTop
 ---@see push
 ---<hr/>
@@ -2157,10 +2214,10 @@ function M.prepend(array, ...)
 end
 
 ----Pushes all passed-in values at the end of an array.
----@generic T
----@param array T[] # an array
----@param ... T # a variable number of arguments
----@return T[] # the passed-in array with new added values
+---@generic v, v2
+---@param array v[] # an array
+---@param ... v2 # a variable number of arguments
+---@return (v|v2)[] # the passed-in array with new added values
 ---@see addTop
 ---@see prepend
 ---<hr/>
@@ -2174,8 +2231,7 @@ M.push(array,1,2,3,4) -- => "{1,1,2,3,4}"
 ```
 ]]
 function M.push(array, ...)
-    local args = { ... }
-    for k, v in ipairs({ ... }) do
+    for _, v in ipairs { ... } do
         array[#array + 1] = v
     end
     return array
@@ -2183,10 +2239,10 @@ end
 
 ----Removes and returns the values at the top of a given array.
 ---<br/><em>Aliased as `pop`</em>
----@generic T
----@param array T[] # an array
+---@generic v
+---@param array v[] # an array
 ---@param n? integer # the number of values to be popped. Defaults to 1.
----@return T # the popped values
+---@return v,v,v,v,v,v,v # the popped values
 ---@see unshift
 ---<hr/>
 ---
@@ -2220,10 +2276,10 @@ function M.shift(array, n)
 end
 
 ---Removes and returns the values at the end of a given array.
----@generic T
----@param array T[] # an array
----@param n integer # the number of values to be unshifted. Defaults to 1.
----@return T[] # the values
+---@generic v
+---@param array v[] # an array
+---@param n? integer # the number of values to be unshifted. Defaults to 1.
+---@return v,v,v,v,v,v,v # the values
 ---@see shift
 ---<hr/>
 ---
@@ -2248,10 +2304,10 @@ end
 
 ---Removes all provided values in a given array.
 ---<br/><em>Aliased as `remove`</em>
----@generic T
----@param array T[] # an array
----@param ... T # a variable number of values to be removed from the array
----@return T[] # the passed-in array with values removed
+---@generic v
+---@param array v[] # an array
+---@param ... any # a variable number of values to be removed from the array
+---@return v[] # the passed-in array with values removed
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -2263,13 +2319,10 @@ M.pull({1,2,1,2,3,4,3},1,2,3) -- => "{4}"
 function M.pull(array, ...)
     local values = { ... }
     for i = #array, 1, -1 do
-        local remval = false
-        for k, rmValue in ipairs(values) do
-            if (remval == false) then
-                if M.isEqual(array[i], rmValue) then
-                    t_remove(array, i)
-                    remval = true
-                end
+        for _, rmValue in ipairs(values) do
+            if M.isEqual(array[i], rmValue) then
+                t_remove(array, i)
+                break
             end
         end
     end
@@ -2278,11 +2331,11 @@ end
 
 ---Removes values at an index within the range `[start, finish]`.
 ---<br/><em>Aliased as `rmRange`, `chop`</em>
----@generic T
----@param array T[] # an array
+---@generic v
+---@param array v[] # an array
 ---@param start? integer # the lower bound index, defaults to the first index in the array.
 ---@param finish? integer # the upper bound index, defaults to the array length.
----@return T[] # the passed-in array with values removed
+---@return v[] # the passed-in array with values removed
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -2308,10 +2361,10 @@ end
 ---Chunks together consecutive values. Values are chunked on the basis of the return
 ---value of a provided predicate `f (v, k)`. Consecutive elements which return
 ---the same value are chunked together. Leaves the first argument untouched if it is not an array.
----@generic TElem, TTrans
----@param array TElem[] # an array
----@param f? fun(v:TElem, k:integer):TElem|TTrans # an iterator function prototyped as `f (v, k)`. Defaults to `identity`.
----@return (TElem|TTrans)[][] # a table of chunks (arrays)
+---@generic v
+---@param array v[] # an array
+---@param f? fun(v:v, k:integer):any # an iterator function prototyped as `f (v, k)`. Defaults to `identity`.
+---@return v[][] # a table of chunks (arrays)
 ---@see zip
 ---<hr/>
 ---
@@ -2351,11 +2404,11 @@ end
 
 ---Slices values indexed within `[start, finish]` range.
 ---<br/><em>Aliased as `M.sub`</em>
----@generic T
----@param array T[] # an array
+---@generic v
+---@param array v[] # an array
 ---@param start? integer # the lower bound index, defaults to the first index in the array.
 ---@param finish? integer # the upper bound index, defaults to the array length.
----@return T[] # a new array of sliced values
+---@return v[] # a new array of sliced values
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -2376,10 +2429,10 @@ end
 
 ---Returns the first N values in an array.
 ---<br/><em>Aliased as `head`, `take` </em>
----@generic T
----@param array T[] # an array
+---@generic v
+---@param array v[] # an array
 ---@param n? integer # the number of values to be collected, defaults to 1.
----@return T[] # a new array
+---@return v[] # a new array
 ---@see initial
 ---@see last
 ---@see rest
@@ -2403,10 +2456,10 @@ function M.first(array, n)
 end
 
 ---Returns all values in an array excluding the last N values.
----@generic T
----@param array T[] # an array
+---@generic v
+---@param array v[] # an array
 ---@param n? integer # the number of values to be left, defaults to the array length.
----@return T[] # a new array
+---@return v[] # a new array
 ---@see first
 ---@see last
 ---@see rest
@@ -2431,10 +2484,10 @@ function M.initial(array, n)
 end
 
 ---Returns the last N values in an array.
----@generic T
----@param array T[] # an array
+---@generic v
+---@param array v[] # an array
 ---@param n? integer # the number of values to be collected, defaults to the array length.
----@return T[] # a new array
+---@return v[] # a new array
 ---@see first
 ---@see initial
 ---@see rest
@@ -2459,10 +2512,10 @@ end
 
 ---Returns all values after index, including the given index itself.
 ---<br/><em>Aliased as `tail`</em>
----@generic T
----@param array T[] # an array
+---@generic v
+---@param array v[] # an array
 ---@param index? integer # an index, defaults to 1
----@return T[] # a new array
+---@return v[] # a new array
 ---@see first
 ---@see initial
 ---@see last
@@ -2484,10 +2537,10 @@ function M.rest(array, index)
 end
 
 ---Returns the value at a given index.
----@generic T
----@param array T[] # an array
+---@generic v
+---@param array v[] # an array
 ---@param index integer # an index
----@return T # the value at the given index
+---@return v # the value at the given index
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -2502,9 +2555,9 @@ function M.nth(array, index)
 end
 
 ---Returns all truthy values (removes `falses` and `nils`).
----@generic T
----@param array T[] # an array
----@return T[] # a new array
+---@generic v
+---@param array v[] # an array
+---@return v[] # a new array
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -2523,10 +2576,10 @@ function M.compact(array)
 end
 
 ---Flattens a nested array. Passing `shallow` will only flatten at the first level.
----@generic T
----@param array T[] # an array
+---@generic v
+---@param array v[] # an array
 ---@param shallow? boolean # specifies the flattening depth. Defaults to `false`.`
----@return T[] # a flattened array
+---@return v[] # a flattened array
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -2553,10 +2606,10 @@ end
 
 ---Returns values from an array not present in all passed-in args.
 ---<br/><em>Aliased as `without` and `diff`</em>
----@generic T
----@param array T[] # an array
----@param array2 T[] # another array
----@return T[] # a new array
+---@generic v, v2
+---@param array v[] # an array
+---@param array2 v2[] # another array
+---@return v[] # a new array
 ---@see union
 ---@see intersection
 ---@see symmetricDifference
@@ -2578,8 +2631,9 @@ function M.difference(array, array2)
 end
 
 ---Returns the duplicate-free union of all passed in arrays.
----@param ... table # a variable number of arrays arguments
----@return table # a new array
+---@generic v
+---@param ... v[] # a variable number of arrays arguments
+---@return v[] # a new array
 ---@see difference
 ---@see intersection
 ---@see symmetricDifference
@@ -2601,9 +2655,9 @@ end
 
 ---Returns the intersection of all passed-in arrays.
 ---Each value in the result is present in each of the passed-in arrays.
----@generic T
----@param ... T[][] # a variable number of array arguments
----@return T[] # a new array
+---@generic v
+---@param ... v[] # a variable number of array arguments
+---@return v[] # a new array
 ---@see difference
 ---@see union
 ---@see symmetricDifference
@@ -2658,10 +2712,10 @@ end
 ---Performs a symmetric difference. Returns values from `array` not present in `array2` and also values
 ---from `array2` not present in `array`.
 ---<br/><em>Aliased as `symdiff`</em>
----@generic T
----@param array T{] # an array
----@param array2 T[] # another array
----@return T[] # a new array
+---@generic v, v2
+---@param array v[] # an array
+---@param array2 v2[] # another array
+---@return (v|v2)[] # a new array
 ---@see difference
 ---@see union
 ---@see intersection
@@ -2685,9 +2739,9 @@ end
 
 ---Produces a duplicate-free version of a given array.
 ---<br/><em>Aliased as `uniq`</em>
----@generic T
----@param array T[] # an array
----@return T[] # a new array, duplicate-free
+---@generic v
+---@param array v[] # an array
+---@return v[] # a new array, duplicate-free
 ---@see isunique
 ---@see duplicates
 ---<hr/>
@@ -2712,8 +2766,8 @@ end
 ---Checks if a given array contains distinct values. Such an array is made of distinct elements,
 ---which only occur once in this array.
 ---<br/><em>Aliased as `isuniq`</em>
----@generic T
----@param array T[] # an array
+---@generic v
+---@param array v[] # an array
 ---@return boolean # `true` if the given array is unique, `false` otherwise.
 ---@see unique
 ---@see duplicates
@@ -2732,9 +2786,9 @@ function M.isunique(array)
 end
 
 ---Returns an array list of all duplicates in array.
----@generic T
----@param array T[] # an array
----@return T[] # an array-list of duplicates
+---@generic v
+---@param array v[] # an array
+---@return v[] # an array-list of duplicates
 ---@see unique
 ---<hr/>
 ---
@@ -2778,7 +2832,7 @@ function M.zip(...)
     local _ans = {}
     for i = 1, n do
         if not _ans[i] then _ans[i] = {} end
-        for k, array in ipairs(args) do
+        for _, array in ipairs(args) do
             if (array[i] ~= nil) then _ans[i][#_ans[i] + 1] = array[i] end
         end
     end
@@ -2789,10 +2843,10 @@ end
 ---Only values indexed with the same key in the given arrays are merged in the same subset.
 ---Function `f` is used to combine values.
 ---<br/><em>Aliased as `transposeWith`</em>
----@generic TZip
----@param f fun(...):TZip # a function
+---@generic v
+---@param f fun(...):v # a function
 ---@param ... table # a variable number of array arguments
----@return TZip[] # a flat array of results
+---@return v[] # a flat array of results
 ---@see zip
 ---<hr/>
 ---
@@ -2820,10 +2874,10 @@ function M.zipWith(f, ...)
 end
 
 --- Clones array and appends values from another array.
----@generic T
----@param array T[] # an array
----@param other T[] # an array
----@return T[] # a new array
+---@generic v, v2
+---@param array v[] # an array
+---@param other v2[] # an array
+---@return (v|v2)[] # a new array
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -2861,7 +2915,7 @@ function M.interleave(...)
     local n = M.max(args, M.size)
     local t = {}
     for i = 1, n do
-        for k, array in ipairs(args) do
+        for _, array in ipairs(args) do
             if array[i] then t[#t + 1] = array[i] end
         end
     end
@@ -2870,11 +2924,11 @@ end
 
 ---Interposes value in-between consecutive pair of values in array.
 ---<br/><em>Aliased as `intersperse`</em>
----@generic T1, T2
+---@generic v, v2
 ---@name interpose
----@param array T1[] # an array
----@param value T2 # a value
----@return (T1|T2)[] # a new array
+---@param array v[] # an array
+---@param value v2 # a value
+---@return (v|v2)[] # a new array
 ---@see interleave
 ---<hr/>
 ---
@@ -2942,10 +2996,10 @@ function M.range(from, to, step)
 end
 
 ---Creates an array list of `n` values, repeated.
----@generic T
----@param value T # a value to be repeated
+---@generic v
+---@param value v # a value to be repeated
 ---@param n integer # the number of repetitions of value.
----@return T[] # a new array of `n` values
+---@return v[] # a new array of `n` values
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -2963,9 +3017,9 @@ end
 
 ---Returns the powerset of array values. For instance, when given the set {1,2,3},
 ---returns `{{},{1},{2},{3},{1,2},{2,3},{1,3},{1,2,3}}`.
----@generic T
----@param array T[] # an array
----@return T[][] # an array
+---@generic v
+---@param array v[] # an array
+---@return v[][] # an array
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -2978,7 +3032,7 @@ M.powerset {1,2,3} -- => "{{1},{2},{3},{1,2},{2,3},{1,2,3}}"
 function M.powerset(array)
     local n = #array
     local powerset = {}
-    for i, v in ipairs(array) do
+    for _, v in ipairs(array) do
         for j = 1, #powerset do
             local set = powerset[j]
             t_insert(powerset, M.push(M.slice(set), v))
@@ -2992,11 +3046,11 @@ end
 ---Iterator returning partitions of an array. It returns arrays of length `n`
 ---made of values from the given array. If the last partition has lower elements than `n` and
 ---`pad` is supplied, it will be adjusted to `n` of elements with `pad` value.
----@generic T
----@param array T[] # an array
+---@generic v
+---@param array v[] # an array
 ---@param n? integer # the size of partitions. Defaults to 1.
----@param pad? T # pads a value to adjust the last subsequence to the `n` elements
----@return (fun():T[])|nil # an iterator function or __nil__
+---@param pad? v # pads a value to adjust the last subsequence to the `n` elements
+---@return (fun():v[])|nil # an iterator function or __nil__
 ---@see overlapping
 ---@see aperture
 ---<hr/>
@@ -3045,11 +3099,11 @@ end
 ---Iterator returning overlapping partitions of an array.
 ---If the last subsequence has lower elements than `n` and `pad` is
 ---supplied, it will be adjusted to `n` elements with `pad` value.
----@generic T
----@param array T[] # an array
+---@generic v
+---@param array v[] # an array
 ---@param n? integer # the size of partitions. Defaults to 2.
----@param pad T # pads a value to adjust the last subsequence to the `n` elements
----@return (fun():T[])|nil # an iterator function or __nil__
+---@param pad v # pads a value to adjust the last subsequence to the `n` elements
+---@return (fun():v[])|nil # an iterator function or __nil__
 ---@see partition
 ---@see aperture
 ---<hr/>
@@ -3103,10 +3157,10 @@ end
 
 ---Iterator returning sliding partitions of an array.
 ---<br/><em>Aliased as `sliding`</em>
----@generic T
----@param array T[] # an array
+---@generic v
+---@param array v[] # an array
 ---@param n? integer # the size of partitions. Defaults to 2 (and then behaves like `pairwise`)
----@return (fun():T[])|nil # an iterator function or __nil__
+---@return (fun():v[])|nil # an iterator function or __nil__
 ---@see partition
 ---@see overlapping
 ---@see pairwise
@@ -3141,9 +3195,9 @@ function M.aperture(array, n)
 end
 
 ---Iterator returning sliding pairs of an array.
----@generic T
----@param array T[] # an array
----@return fun():T[] # an iterator function
+---@generic v
+---@param array v[] # an array
+---@return fun():v[] # an iterator function
 ---@see overlapping
 ---<hr/>
 ---
@@ -3166,9 +3220,9 @@ function M.pairwise(array) return M.aperture(array, 2) end
 
 ---Iterator returning the permutations of an array. It returns arrays made of all values
 ---from the passed-in array, with values permuted.
----@generic T
----@param array T[] # an array
----@return fun():T[] # an iterator function
+---@generic v
+---@param array v[] # an array
+---@return fun():v[] # an iterator function
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -3197,8 +3251,8 @@ end
 ---passed, it will be used as a separator. Passing `i` and `j` will result in concatenating
 ---only values within `[i, j]` range.
 ---<br/><em>Aliased as `join`</em>
----@generic T
----@param array T[] # a given array
+---@generic v
+---@param array v[] # a given array
 ---@param sep? string # a separator string, defaults to the empty string `''`.
 ---@param i? integer # the starting index, defaults to 1.
 ---@param j? integer # the final index, defaults to the array length.
@@ -3217,10 +3271,10 @@ function M.concat(array, sep, i, j)
 end
 
 ---Returns all possible pairs built from given arrays.
----@generic T1, T2
----@param array T1[] # a first array
----@param array2 T2[] # a second array
----@return { [1]:T1, [2]: T2 }[] # an array list of all pairs
+---@generic v, v2
+---@param array v[] # a first array
+---@param array2 v2[] # a second array
+---@return { [1]:v, [2]: v2 }[] # an array list of all pairs
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -3241,10 +3295,10 @@ function M.xprod(array, array2)
 end
 
 ---Creates pairs from value and array. Value is always prepended to the pair.
----@generic T1, T2
----@param value T1 # a value
----@param array T2[] # an array
----@return { [1]:T1, [2]:T2 }[] # an array list of all pairs
+---@generic v, v2
+---@param value v # a value
+---@param array v2[] # an array
+---@return { [1]:v, [2]:v2 }[] # an array list of all pairs
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -3263,10 +3317,10 @@ function M.xpairs(value, array)
 end
 
 ---Creates pairs from value and array. Value is always appended as the last item to the pair.
----@generic T1, T2
----@param value T1 # a value
----@param array T2[] # an array
----@return { [1]:T2, [2]:T1 }[] # an array list of all pairs
+---@generic v, v2
+---@param value v # a value
+---@param array v2[] # an array
+---@return { [1]:v2, [2]:v }[] # an array list of all pairs
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -3285,9 +3339,9 @@ function M.xpairsRight(value, array)
 end
 
 ---Returns the sum of array values.
----@generic T
----@param array T[] # a given array
----@return T # the sum of array values
+---@generic v
+---@param array v[] # a given array
+---@return v # the sum of array values
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -3303,9 +3357,9 @@ function M.sum(array)
 end
 
 ---Returns the product of array values.
----@generic T
----@param array T[] # a given array
----@return T # the product of array values
+---@generic v
+---@param array v[] # a given array
+---@return v # the product of array values
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -3383,9 +3437,9 @@ function M.noop() return end
 
 ---Returns the passed-in value. This function is used internally
 ---as a default iterator.
----@generic T
----@param value T # a value
----@return T # the passed-in value
+---@generic v
+---@param value v # a value
+---@return v # the passed-in value
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -3399,10 +3453,10 @@ M.identity('hello!') -- => 'hello!'
 function M.identity(value) return value end
 
 ---Calls `f` with the supplied arguments. Returns the results of `f(...)`.
----@generic TRet
----@param f fun(...):TRet # a function
+---@generic v
+---@param f fun(...):v # a function
 ---@param ... any # a vararg list of args to `f`
----@return TRet # the result of `f(...)` call.
+---@return v # the result of `f(...)` call.
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -3419,9 +3473,9 @@ end
 
 ---Creates a constant function which returns the same output on every call.
 ---<br/><em>Aliased as `always`</em>
----@generic T
----@param value T # constant value
----@return fun():T # a constant function
+---@generic v
+---@param value v # constant value
+---@return fun():v # a constant function
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -3440,9 +3494,9 @@ end
 ---Returns a function which applies `specs` on args. This function produces an object having
 ---the same structure than `specs` by mapping each property to the result of calling its
 ---associated function with the supplied arguments
----@generic T1, T2
----@param specs { [T1]:fun(...):T2 } # table
----@return fun(...):{ [T1]:T2 } # a function
+---@generic k, v
+---@param specs { [k]:(fun(...):v) } # table
+---@return fun(...):{ [k]:v } # a function
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -3467,10 +3521,10 @@ end
 ---Threads `value` through a series of functions. If a function expects more than one args,
 ---it can be specified using an array list, where the first item is the function and the following
 ---are the remaining args neeeded. The value is used as the first input.
----@generic T
----@param value T # a value
----@param ... function|{[1]:function} a vararg list of functions or arrays
----@return T # a value
+---@generic v, v2, v3, v4
+---@param value v # a value
+---@param ... (fun(state:v|v2):v2)|{ [1]:(fun(state:v|v4, value:v3):v4), [2]:v3 } a vararg list of functions or arrays
+---@return v2|v4 # a value
 ---@see threadRight
 ---<hr/>
 ---
@@ -3495,7 +3549,7 @@ M.thread(2, {add, 4}, inc, {pow, 2}) -- => 49
 function M.thread(value, ...)
     local state = value
     local arg = { ... }
-    for k, t in ipairs(arg) do
+    for _, t in ipairs(arg) do
         if type(t) == 'function' then
             state = t(state)
         elseif type(t) == 'table' then
@@ -3510,10 +3564,10 @@ end
 ---Threads `value` through a series of functions. If a function expects more than one args,
 ---it can be specified using an array list, where the first item is the function and the following
 ---are the remaining args neeeded. The value is used as the last input.
----@generic T
----@param value T # a value
----@param ... function|{[1]:function} a vararg list of functions or arrays
----@return T # a value
+---@generic v, v2, v3, v4
+---@param value v # a value
+---@param ... (fun(state:v|v2):v2)|{ [1]:(fun(state:v|v4, value:v3):v4), [2]:v3 } a vararg list of functions or arrays
+---@return v2|v4 # a value
 ---@see thread
 ---<hr/>
 ---
@@ -3574,9 +3628,9 @@ end
 ---Memoizes a given function by caching the computed result.
 ---Useful for speeding-up slow-running functions.
 ---<br/><em>Aliased as `cache`</em>
----@generic T
----@param f fun(key:any):T # a function
----@return fun(Key:any):T # a new function
+---@generic v
+---@param f fun(key:any):v # a function
+---@return fun(Key:any):v # a new function
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -3603,10 +3657,10 @@ end
 ---Builds a list from a seed value. Accepts an iterator function, which
 ---returns either nil to stop iteration or two values : the value to add to the list
 ---of results and the seed to be used in the next call to the iterator function.
----@generic T1, T2
----@param f fun(seed:T2):(T1, T2) an iterator function
----@param seed T2 # a seed value
----@return T1[] # an array of values
+---@generic v, v2
+---@param f fun(seed?:v2):(v?, v2?) an iterator function
+---@param seed? v2 # a seed value
+---@return v[] # an array of values
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -3635,9 +3689,9 @@ end
 ---Returns a version of `f` that runs only once. Successive calls to `f`
 ---will keep yielding the same output, no matter what the passed-in arguments are.
 ---It can be used to initialize variables.
----@generic TRet
----@param f fun(...):TRet # a function
----@return fun(...):TRet # a new function
+---@generic v
+---@param f fun(...):v # a function
+---@return fun(...):v # a new function
 ---@see before
 ---@see after
 ---<hr/>
@@ -3665,10 +3719,10 @@ end
 
 ---Returns a version of `f` that will run no more than <em>count</em> times. Next calls will
 ---keep yielding the results of the count-th call.
----@generic TRet
----@param f fun(...):TRet # a function
+---@generic v
+---@param f fun(...):v # a function
 ---@param count integer # a count
----@return fun(...):TRet # a new function
+---@return fun(...):v # a new function
 ---@see once
 ---@see after
 ---<hr/>
@@ -3697,10 +3751,10 @@ end
 
 ---Returns a version of `f` that runs on the `count-th` call.
 ---Useful when dealing with asynchronous tasks.
----@generic TRet
----@param f fun(...):TRet a function
+---@generic v
+---@param f fun(...):v a function
 ---@param count integer # the number of calls before `f` will start running.
----@return fun(...):TRet # a new function
+---@return fun(...):v # a new function
 ---@see once
 ---@see before
 ---<hr/>
@@ -3802,9 +3856,9 @@ end
 ---Calls a sequence of passed-in functions with the same argument.
 ---Returns a sequence of results.
 ---<br/><em>Aliased as `juxt`</em>
----@generic T
----@param value T # a value
----@param ... fun(value:T):unknown # a variable number of functions
+---@generic v
+---@param value v # a value
+---@param ... fun(value:v):unknown # a variable number of functions
 ---@return ... # a list of results
 ---<hr/>
 ---
@@ -3829,10 +3883,10 @@ end
 ---Wraps `f` inside of the `wrapper` function. It passes `f` as the first argument to `wrapper`.
 ---This allows the wrapper to execute code before and after `f` runs,
 ---adjust the arguments, and execute it conditionally.
----@generic TFun : function, TRet
----@param f TFun # a function to be wrapped, prototyped as `f (...)`
----@param wrapper fun(f:TFun, ...):TRet # wrapper function, prototyped as `wrapper (f, ...)`
----@return fun(...):TRet # the results
+---@generic f : function, ret
+---@param f f # a function to be wrapped, prototyped as `f (...)`
+---@param wrapper fun(f:f, ...):ret # wrapper function, prototyped as `wrapper (f, ...)`
+---@return fun(...):ret # the results
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -3854,10 +3908,10 @@ function M.wrap(f, wrapper)
 end
 
 ---Runs `iter` function `n` times. Collects the results of each run and returns them in an array.
----@generic T
----@param iter fun(i:integer):T # an iterator function, prototyped as `iter (i)`
+---@generic v
+---@param iter fun(i:integer):v # an iterator function, prototyped as `iter (i)`
 ---@param n? integer # the number of times `iter` should be called. Defaults to 1.
----@return T[] # an array of results
+---@return v[] # an array of results
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -3877,10 +3931,10 @@ function M.times(iter, n)
 end
 
 ---Binds `v` to be the first argument to `f`. Calling `f (...)` will result to `f (v, ...)`.
----@generic T1, TRet
----@param f fun(v:T1, ...):TRet # a function
----@param v T1 # a value
----@return fun(...):TRet # a function
+---@generic v, ret
+---@param f fun(v:v, ...):ret # a function
+---@param v v # a value
+---@return fun(...):ret # a function
 ---@see bind2
 ---@see bindn
 ---@see bindall
@@ -3900,10 +3954,10 @@ function M.bind(f, v)
 end
 
 ---Binds `v` to be the second argument to `f`. Calling `f (a, ...)` will result to `f (a, v, ...)`.
----@generic T1, T2, TRet
----@param f fun(t:T1, v:T2, ...):TRet # a function
----@param v T2 # a value
----@return fun(t:T1, ...):TRet # a function
+---@generic v, v2, ret
+---@param f fun(t:v, v:v2, ...):ret # a function
+---@param v v2 # a value
+---@return fun(t:v, ...):ret # a function
 ---@see bind
 ---@see bindn
 ---@see bindall
@@ -3924,10 +3978,10 @@ end
 
 ---Binds `...` to be the N-first arguments to function `f`.
 ---Calling `f (a1, a2, ..., aN)` will result to `f (..., a1, a2, ...,aN)`.
----@generic TRet
----@param f fun(...):TRet # a function
+---@generic ret
+---@param f fun(...):ret # a function
 ---@param ... any # a variable number of arguments
----@return fun(...):TRet # a function
+---@return fun(...):ret # a function
 ---@see bind
 ---@see bind2
 ---@see bindall
@@ -3951,10 +4005,10 @@ end
 
 ---Binds methods to object. As such, whenever any of these methods is invoked, it
 ---always receives the object as its first argument.
----@generic T
----@param obj T # an abject
+---@generic o
+---@param obj o # an abject
 ---@param ... string # a variable number of method names
----@return T # the passed-in object with all methods bound to the object itself.
+---@return o # the passed-in object with all methods bound to the object itself.
 ---@see bind
 ---@see bind2
 ---@see bindn
@@ -3990,9 +4044,9 @@ end
 ---Returns a function which iterate over a set of conditions. It invokes each predicate,
 ---passing it given values. It returns the value of the corresponding function of the first
 ---predicate to return a non-nil value.
----@generic TRet
----@param conds { [1]:(fun(...):boolean), [2]:(fun(...):TRet) }[] # an array list of predicate-function pairs
----@return fun(...):TRet # the result of invoking `f(...)` of the first predicate to return a non-nil value
+---@generic ret
+---@param conds { [1]:(fun(...):boolean), [2]:(fun(...):ret) }[] # an array list of predicate-function pairs
+---@return fun(...):ret # the result of invoking `f(...)` of the first predicate to return a non-nil value
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -4114,9 +4168,9 @@ end
 ---will use this template for output formatting. Otherwise, if `template` is a function, it
 ---will evaluate `template (id)`.
 ---<br/><em>Aliased as `uid`</em>.
----@generic T
----@param template string|fun(integer):T # either a string or a function template to format the ID
----@return integer|string|T # an ID
+---@generic v
+---@param template string|(fun(integer):v) # either a string or a function template to format the ID
+---@return integer|string|v # an ID
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -4154,11 +4208,11 @@ end
 ---Produces an iterator which repeatedly apply a function `f` onto an input.
 ---Yields `value`, then `f(value)`, then `f(f(value))`, continuously.
 ---<br/><em>Aliased as `iter`</em>.
----@generic T
----@param f fun(value:T):T # a function
----@param value? T # an initial input to `f`
+---@generic v
+---@param f fun(value:v):v # a function
+---@param value? v # an initial input to `f`
 ---@param n? integer # the number of times the iterator should run
----@return fun():T # an iterator function
+---@return fun():v # an iterator function
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -4194,10 +4248,10 @@ function M.iterator(f, value, n)
 end
 
 ---Consumes the first `n` values of a iterator then returns it.
----@generic T : function
----@param iter T # an iterator function
+---@generic f : function
+---@param iter f # an iterator function
 ---@param n? integer # a number. Defaults to 1.
----@return nil|T # the given iterator or __nil__ when `iter` returns nothing
+---@return f? # the given iterator or __nil__ when `iter` returns nothing
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -4217,9 +4271,9 @@ function M.skip(iter, n)
 end
 
 ---Iterates over an iterator and returns its values in an array.
----@generic T
----@param ... fun():T # an iterator function (returning a generator, a state and a value)
----@return T[] # an array of results
+---@generic v
+---@param ... fun():v # an iterator function (returning a generator, a state and a value)
+---@return v[] # an array of results
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -4257,9 +4311,9 @@ function M.iterlen(...)
 end
 
 ---Casts value as an array if it is not one.
----@generic T
----@param value T # a value
----@return T[] # an array containing the given value
+---@generic v
+---@param value v # a value
+---@return v[] # an array containing the given value
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -4324,9 +4378,9 @@ function M.nthArg(n)
 end
 
 ---Returns a function which accepts up to one arg. It ignores any additional arguments.
----@generic TArg, TRet
----@param f fun(arg:TArg):TRet # a function
----@return fun(arg:TArg):TRet # a function
+---@generic a1, ret
+---@param f fun(arg:a1):ret # a function
+---@return fun(arg:a1):ret # a function
 ---@see ary
 ---<hr/>
 ---
@@ -4347,10 +4401,10 @@ end
 
 ---Returns a function which accepts up to `n` args. It ignores any additional arguments.
 ---<br/><em>Aliased as `nAry`</em>.
----@generic TRet
----@param f fun(...):TRet # a function
+---@generic ret
+---@param f fun(...):ret # a function
 ---@param n? integer # a number. Defaults to 1.
----@return fun(...):TRet # a function
+---@return fun(...):ret # a function
 ---@see unary
 ---<hr/>
 ---
@@ -4375,9 +4429,9 @@ function M.ary(f, n)
 end
 
 ---Returns a function with an arity of 0. The new function ignores any arguments passed to it.
----@generic TRet
----@param f fun(...):TRet # a function
----@return fun():TRet # a new function
+---@generic ret
+---@param f fun(...):ret # a function
+---@return fun():ret # a new function
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -4396,10 +4450,10 @@ end
 
 ---Returns a function which runs with arguments rearranged. Arguments are passed to the
 ---returned function in the order of supplied `indexes` at call-time.
----@generic TRet
----@param f fun(...):TRet #  a function
+---@generic ret
+---@param f fun(...):ret #  a function
 ---@param indexes integer[] # an array list of indexes
----@return fun(...):TRet #  a function
+---@return fun(...):ret #  a function
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -4600,10 +4654,10 @@ function M.converge(f, g, h) return function(...) return f(g(...), h(...)) end e
 ---Partially apply a function by filling in any number of its arguments.
 ---One may pass a string `'_'` as a placeholder in the list of arguments to specify an argument
 ---that should not be pre-filled, but left open to be supplied at call-time.
----@generic TRet
----@param f fun(...):TRet # a function
+---@generic ret
+---@param f fun(...):ret # a function
 ---@param ... any # a list of partial arguments to `f`
----@return fun(...):TRet # a new version of function f having some of it original arguments filled
+---@return fun(...):ret # a new version of function f having some of it original arguments filled
 ---@see partialRight
 ---@see curry
 ---<hr/>
@@ -4632,10 +4686,10 @@ function M.partial(f, ...)
 end
 
 ---Similar to `partial`, but from the right.
----@generic TRet
----@param f fun(...):TRet # a function
+---@generic ret
+---@param f fun(...):ret # a function
 ---@param ... any # a list of partial arguments to `f`
----@return fun(...):TRet # a new version of function f having some of it original arguments filled
+---@return fun(...):ret # a new version of function f having some of it original arguments filled
 ---@see partialRight
 ---@see curry
 ---<hr/>
@@ -4762,9 +4816,9 @@ end
 -- @section Object functions
 
 ---Returns the keys of the object properties.
----@generic TKey
----@param obj { [TKey]:unknown } an object
----@return TKey[] # an array of keys
+---@generic k
+---@param obj { [k]:unknown } an object
+---@return k[] # an array of keys
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -4782,9 +4836,9 @@ function M.keys(obj)
 end
 
 ---Returns the values of the object properties.
----@generic TValue
----@param obj { [unknown]:TValue } # an object
----@return TValue[] # an array of values
+---@generic v
+---@param obj { [unknown]:v } # an object
+---@return v[] # an array of values
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -4892,9 +4946,9 @@ function M.flattenPath(obj, ...)
 end
 
 ---Converts key-value pairs to an array-list of `[k, v]` pairs.
----@generic TKey, TValue
----@param obj { [TKey]:TValue } an object
----@return { [1]:TKey, [2]:TValue }[] # an array list of key-value pairs
+---@generic k, v
+---@param obj { [k]:v } an object
+---@return { [1]:k, [2]:v }[] # an array list of key-value pairs
 ---@see toObj
 ---<hr/>
 ---
@@ -4919,9 +4973,9 @@ end
 
 ---Converts an array list of `[k,v]` pairs to an object. Keys are taken
 ---from the 1rst column in the `[k,v]` pairs sequence, associated with values in the 2nd column.
----@generic TKey, TValue
----@param kvpairs { [1]:TKey, [2]:TValue }[] # an array-list of `[k,v]` pairs
----@return { [TKey]:TValue } # an object
+---@generic k, v
+---@param kvpairs { [1]:k, [2]:v }[] # an array-list of `[k,v]` pairs
+---@return { [k]:v } # an object
 ---@see kvpairs
 ---<hr/>
 ---
@@ -4936,7 +4990,7 @@ local obj = M.toObj(list_pairs)
 ]]
 function M.toObj(kvpairs)
     local obj = {}
-    for k, v in ipairs(kvpairs) do
+    for _, v in ipairs(kvpairs) do
         obj[v[1]] = v[2]
     end
     return obj
@@ -4945,9 +4999,9 @@ end
 ---Swaps keys with values. Produces a new object where previous keys are now values,
 ---while previous values are now keys.
 ---<br/><em>Aliased as `mirror`</em>
----@generic TKey, TValue
----@param obj { [TKey]:TValue } # a given object
----@return { [TValue]:TKey } # a new object
+---@generic k, v
+---@param obj { [k]:v } # a given object
+---@return { [v]:k } # a new object
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -4967,9 +5021,9 @@ function M.invert(obj)
 end
 
 ---Returns a function that will return the key property of any passed-in object.
----@generic TKey, TValue
----@param key TKey # a key property name
----@return fun(obj:{ [TKey]:TValue }):TValue # a function which should accept an object as argument
+---@generic k, v
+---@param key k # a key property name
+---@return fun(obj:{ [k]:v }):v # a function which should accept an object as argument
 ---@see propertyOf
 ---<hr/>
 ---
@@ -4986,9 +5040,9 @@ function M.property(key)
 end
 
 ---Returns a function which will return the value of an object property.
----@generic TKey, TValue
----@param obj { [TKey]:TValue } # an object
----@return fun(key:TKey):TValue # a function which should accept a key property argument
+---@generic k, v
+---@param obj { [k]:v } # an object
+---@return fun(key:k):v # a function which should accept a key property argument
 ---@see property
 ---<hr/>
 ---
@@ -5096,9 +5150,10 @@ function M.functions(obj, recurseMt)
 end
 
 ---Clones a given object properties. If `shallow` is passed will also clone nested array properties.
----@param obj any # an object
+---@generic v
+---@param obj v # an object
 ---@param shallow? boolean # whether or not nested array-properties should be cloned, defaults to false.
----@return any # a copy of the passed-in object
+---@return v # a copy of the passed-in object
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -5130,10 +5185,10 @@ end
 ---Invokes interceptor with the object, and then returns object.
 ---The primary purpose of this method is to "tap into" a method chain, in order to perform operations
 ---on intermediate results within the chain.
----@generic T
----@param obj T # an object
----@param f fun(obj:T) # an interceptor function, should be prototyped as `f (obj)`
----@return T # the passed-in object
+---@generic o
+---@param obj o # an object
+---@param f fun(obj:o) # an interceptor function, should be prototyped as `f (obj)`
+---@return o # the passed-in object
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -5171,10 +5226,10 @@ end
 
 ---Returns an object copy having white-listed properties.
 ---<br/><em>Aliased as `choose`</em>.
----@generic TKey, TValue
----@param obj { [TKey]:TValue } # an object
----@param ... TKey # a variable number of string keys
----@return { [TKey]:TValue } # the filtered object
+---@generic k, v
+---@param obj { [k]:v } # an object
+---@param ... k # a variable number of string keys
+---@return { [k]:v } # the filtered object
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -5197,10 +5252,10 @@ end
 
 ---Returns an object copy without black-listed properties.
 ---<br/><em>Aliased as `drop`</em>.
----@generic TKey, TValue
----@param obj { [TKey]:TValue } # an object
----@param ... TKey # a variable number of string keys
----@return { [TKey]:TValue } # the filtered object
+---@generic k, v
+---@param obj { [k]:v } # an object
+---@param ... k # a variable number of string keys
+---@return { [k]:v } # the filtered object
 ---<hr/>
 ---
 ---<b>e.g.</b>
@@ -5662,95 +5717,8 @@ do
     M.matches       = M.isEqual
 end
 
--- Setting chaining and building interface
-
-do
-    ---@class Moses_Wrapper : Moses_Interal
-    ---@field _value any
-    ---@field _wrapped boolean
-
-    -- Wrapper to Moses
-    local f = {}
-
-    -- Will be returned upon requiring, indexes into the wrapper
-    ---@class Moses_External : Moses_Interal
-    ---@overload fun(v:any):Moses_Wrapper
-    local Moses = {}
-    Moses.__index = f
-
-    -- Wraps a value into an instance, and returns the wrapped object
-    local function new(value)
-        return setmetatable({ _value = value, _wrapped = true }, Moses)
-    end
-
-    setmetatable(Moses, {
-        __call = function(self, v) return new(v) end, -- Calls returns to instantiation
-        __index = function(t, key, ...) return f[key] end -- Redirects to the wrapper
-    })
-
-    ---Returns a wrapped object. Calling library functions as methods on this object
-    ---will continue to return wrapped objects until `obj:value` is used. Can be aliased as `M(value)`.
-    ---@param value any # a value to be wrapped
-    ---@return Moses_Wrapper # a wrapped object
-    function Moses.chain(value)
-        return new(value)
-    end
-
-    ---Extracts the value of a wrapped object. Must be called on an chained object (see `chain`).
-    ---@param self Moses_Wrapper
-    ---@return unknown # the value previously wrapped
-    function Moses:value()
-        return self._value
-    end
-
-    -- Register chaining methods into the wrapper
-    f.chain, f.value = Moses.chain, Moses.value
-
-    -- Register all functions into the wrapper
-    for fname, fct in pairs(M) do
-        if fname ~= 'operator' then -- Prevents from wrapping op functions
-            f[fname] = function(v, ...)
-                local wrapped = type(v) == 'table' and rawget(v, '_wrapped') or false
-                if wrapped then
-                    local _arg = v._value
-                    local _rslt = fct(_arg, ...)
-                    return new(_rslt)
-                else
-                    return fct(v, ...)
-                end
-            end
-        end
-    end
-
-    -- Exports all op functions
-    f.operator = M.operator
-    f.op       = M.operator
-
-    --- Imports all library functions into a context.
-    -- @name import
-    -- @param[opt] context a context. Defaults to `_ENV or `_G`` (current environment).
-    -- @param[optchain] noConflict if supplied, will not import conflicting functions in the destination context.
-    -- @return the passed-in context
-    function f.import(context, noConflict)
-        context = context or _ENV or _G
-        local funcs = M.functions()
-        for k, fname in ipairs(funcs) do
-            if rawget(context, fname) ~= nil then
-                if not noConflict then
-                    rawset(context, fname, M[fname])
-                end
-            else
-                rawset(context, fname, M[fname])
-            end
-        end
-        return context
-    end
-
-    -- Descriptive tags
-    Moses._VERSION     = 'Moses v' .. _MODULEVERSION
-    Moses._URL         = 'http://github.com/Yonaba/Moses'
-    Moses._LICENSE     = 'MIT <http://raw.githubusercontent.com/Yonaba/Moses/master/LICENSE>'
-    Moses._DESCRIPTION = 'utility-belt library for functional programming in Lua'
-
-    return Moses
-end
+M._VERSION     = 'Moses v' .. _MODULEVERSION
+M._URL         = 'http://github.com/Yonaba/Moses'
+M._LICENSE     = 'MIT <http://raw.githubusercontent.com/Yonaba/Moses/master/LICENSE>'
+M._DESCRIPTION = 'utility-belt library for functional programming in Lua'
+return M
