@@ -710,7 +710,7 @@ end
 ---@return new_v[]
 function M.mapiv(t, f)
     local _t = {}
-    for index, value in pairs(t) do
+    for index, value in ipairs(t) do
         _t[index] = f(value, index)
     end
     return _t
@@ -722,7 +722,7 @@ end
 ---@return {[new_k]:new_v}
 function M.mapikv(t, f)
     local _t = {}
-    for index, value in pairs(t) do
+    for index, value in ipairs(t) do
         local k, v = f(value, index)
         if k then
             _t[k] = v
